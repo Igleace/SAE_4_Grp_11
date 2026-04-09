@@ -4,8 +4,8 @@ session_start();
 use model\Member;
 
 require_once 'filter.php';
-require_once 'models/Role.php';
-require_once 'models/Member.php';
+require_once 'model/Role.php';
+require_once 'model/Member.php';
 require_once 'DB.php';
 require_once 'tools.php';
 

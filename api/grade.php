@@ -6,7 +6,7 @@ use model\Grade;
 require_once 'DB.php';
 require_once 'tools.php';
 require_once 'filter.php';
-require_once 'models/Grade.php';
+require_once 'model/Grade.php';
 require_once 'filter.php';
 
 // TODO: Remove this line in production

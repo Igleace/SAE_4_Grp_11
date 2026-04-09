@@ -5,10 +5,10 @@ use model\News;
 use model\Role;
 
 require_once 'filter.php';
-require_once 'models/News.php';
+require_once 'model/News.php';
 require_once 'DB.php';
 require_once 'tools.php';
-require_once 'models/File.php';
+require_once 'model/File.php';
 
 // TODO: Remove this line in production
 ini_set('display_errors', 1);

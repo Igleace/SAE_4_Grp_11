@@ -5,9 +5,9 @@ use model\Meeting;
 use model\Member;
 
 require_once 'filter.php';
-require_once 'models/File.php';
-require_once 'models/Meeting.php';
-require_once 'models/Member.php';
+require_once 'model/File.php';
+require_once 'model/Meeting.php';
+require_once 'model/Member.php';
 require_once 'DB.php';
 require_once 'tools.php';
 
