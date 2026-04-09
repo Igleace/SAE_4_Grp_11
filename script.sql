@@ -546,20 +546,32 @@ l'utilisateur a les permissions pour le faire sinon on annule*/
 DROP TRIGGER IF EXISTS permissions_create_event;
 
 DELIMITER $$
-CREATE TRIGGER permissions_create_event AFTER INSERT ON ACTUALITE FOR EACH ROW
-	BEGIN
-		DECLARE _user_id INT;
-		DECLARE _has_perms INT;
-		SET _user_id = NEW.id_membre;
-		SET _has_perms = (SELECT `Gestion des actualites` FROM LISTE_PERMISSIONS WHERE id_membre = _user_id);
+DROP TRIGGER IF EXISTS permissions_create_event;
 
-		IF (_has_perms = 0) THEN
-			-- ROLLBACK TRANSACTION n'existe pas en MySQL, on utilise donc une erreur pour annuler l'insertion
-            SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Vous n''avez pas les permissions pour ajouter une actualite';
-		END IF;
-	END$$
+DELIMITER $$
+
+CREATE TRIGGER permissions_create_event
+AFTER INSERT ON ACTUALITE
+FOR EACH ROW
+BEGIN
+    DECLARE _user_id INT;
+    DECLARE _has_perms INT;
+
+    SET _user_id = NEW.id_membre;
+    SET _has_perms = (
+        SELECT p_actualite
+        FROM LISTE_PERMISSIONS
+        WHERE id_membre = _user_id
+    );
+
+    IF (_has_perms = 0) THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Vous n''avez pas les permissions pour ajouter une actualite';
+    END IF;
+END$$
 
 DELIMITER ;
+
 
 /* Test */
 -- Le membre 2 n'a pas les permissions pour ajouter une actualit� donc l'actualit� ne va pas �tre cr��e

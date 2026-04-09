@@ -8,7 +8,6 @@
  * @returns {Promise<string>} The full file path or the default file path.
  */
 export async function getFullFilepath(filename, defaultFile) {
-    // Vérifiez si le filename est invalide (vide, null ou "N/A")
     if (!filename || filename === "N/A") {
         return defaultFile;
     }
@@ -26,10 +25,10 @@ export async function getFullFilepath(filename, defaultFile) {
 }
 
 /**
- * Opens a file dialog for image selection and returns a FormData object with the selected file.
- * Only accepts image/jpeg, image/png, and image/webp MIME types.
+ * Opens a file dialog for image selection and returns the selected file.
+ * Only accepts image/jpeg, image/png, and image/webp MIME types by default.
  *
- * @returns {Promise<File|Blob>} A promise that resolves to a FormData object containing the selected file.
+ * @returns {Promise<File|Blob>} A promise that resolves to the selected file.
  */
 export async function openFileDialog(accept = 'image/*') {
     return new Promise((resolve, reject) => {
@@ -52,10 +51,11 @@ export async function openFileDialog(accept = 'image/*') {
 
 /**
  * Retrieves the URL of a file stored in the file bucket.
- * 
+ *
  * @param {string} filename - The name of the file to retrieve the URL for.
  * @returns {string} The URL of the file.
  */
-export function getFileBucketUrl(filename){
-    return `/api/files/${filename}`;
+export function getFileBucketUrl(filename) {
+    // Les fichiers sont servis sous /assets/uploads/events/
+    return `/assets/uploads/events/${filename}`;
 }

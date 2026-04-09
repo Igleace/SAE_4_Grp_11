@@ -1,62 +1,64 @@
 <?php
 session_start();
-use model\Role;
 
-require_once 'filter.php';
-require_once 'models/Role.php';
-require_once 'DB.php';
-require_once 'tools.php';
+require_once __DIR__ . '/../utils.php';
+require_once __DIR__ . '/filter.php';
+require_once __DIR__ . '/../model/Role.php';
+require_once __DIR__ . '/../model/database.php';
 
 // TODO: Remove this line in production
 ini_set('display_errors', 1);
 
 header('Content-Type: application/json');
 
-
-tools::checkPermission('p_role');
-
+Tools::checkPermission('p_role');
 
 $methode = $_SERVER['REQUEST_METHOD'];
 
-
 switch ($methode) {
-    case 'GET':                      # READ
+    case 'GET':      // READ
         get_role();
         break;
-    case 'POST':                     # CREATE
-            create_role();
+
+    case 'POST':     // CREATE
+        create_role();
         break;
-    case 'PUT':
-        if (tools::methodAccepted('application/json')) {
+
+    case 'PUT':      // UPDATE
+        if (Tools::methodAccepted('application/json')) {
             update_role();
         }
         break;
 
-    case 'DELETE':                   # DELETE
+    case 'DELETE':   // DELETE
         delete_role();
         break;
+
     default:
-        # 405 Method Not Allowed
         http_response_code(405);
+        echo json_encode(['error' => 'Method Not Allowed']);
         break;
 }
 
-function get_role() : void
+/**
+ * GET /api/role.php
+ * GET /api/role.php?id=1
+ */
+function get_role(): void
 {
     if (isset($_GET['id'])) {
-        // Si un ID est précisé, on renvoie les infos de l'utilisateur correspondant avec ses rôles
-        $id = filter::int($_GET['id']);
+        $id = FilterAdmin::int($_GET['id']);
 
-        $data = Role::getInstance($id);
+        $role = Role::getInstance($id);
 
-        if (!$data) {
+        if (!$role) {
             http_response_code(404);
-            echo json_encode(["message" => "User not found"]);
+            echo json_encode(["message" => "Role not found"]);
             return;
         }
 
+        $data = $role->toJson();
     } else {
-        // Sinon, on renvoie la liste de tous les utilisateurs. On va juste préciser si ils ont des rôles ou non
         $data = Role::bulkFetch();
     }
 
@@ -64,15 +66,42 @@ function get_role() : void
     echo json_encode($data);
 }
 
+/**
+ * POST /api/role.php
+ * Crée un rôle de test avec toutes les permissions à 0
+ */
 function create_role(): void
 {
-    $role = Role::create("Nouveau role", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+    $role = Role::create(
+        "Nouveau role",
+        0, // p_log
+        0, // p_boutique
+        0, // p_reunion
+        0, // p_utilisateur
+        0, // p_grade
+        0, // p_role
+        0, // p_actualite
+        0, // p_evenement
+        0, // p_comptabilite
+        0, // p_achat
+        0  // p_moderation
+    );
 
     http_response_code(201);
     echo json_encode($role);
 }
 
-function update_role() : void
+/**
+ * PUT /api/role.php?id=1
+ * Body JSON :
+ * {
+ *   "name": "...",
+ *   "permissions": {
+ *     "p_log": true, "p_boutique": false, ...
+ *   }
+ * }
+ */
+function update_role(): void
 {
     $data = json_decode(file_get_contents('php://input'), true);
 
@@ -82,19 +111,20 @@ function update_role() : void
         return;
     }
 
-    $id = filter::int($_GET['id']);
-    $name = filter::string($data['name']);
-    $p_log = filter::bool($data['permissions']['p_log'] ?? false);
-    $p_boutique = filter::bool($data['permissions']['p_boutique'] ?? false);
-    $p_reunion = filter::bool($data['permissions']['p_reunion'] ?? false);
-    $p_utilisateur = filter::bool($data['permissions']['p_utilisateur'] ?? false);
-    $p_grade = filter::bool($data['permissions']['p_grade'] ?? false);
-    $p_role = filter::bool($data['permissions']['p_role'] ?? false);
-    $p_actualite = filter::bool($data['permissions']['p_actualite'] ?? false);
-    $p_evenement = filter::bool($data['permissions']['p_evenement'] ?? false);
-    $p_comptabilite = filter::bool($data['permissions']['p_comptabilite'] ?? false);
-    $p_achat = filter::bool($data['permissions']['p_achat'] ?? false);
-    $p_moderation = filter::bool($data['permissions']['p_moderation'] ?? false);
+    $id   = FilterAdmin::int($_GET['id']);
+    $name = FilterAdmin::string($data['name']);
+
+    $p_log          = FilterAdmin::bool($data['permissions']['p_log']          ?? false);
+    $p_boutique     = FilterAdmin::bool($data['permissions']['p_boutique']     ?? false);
+    $p_reunion      = FilterAdmin::bool($data['permissions']['p_reunion']      ?? false);
+    $p_utilisateur  = FilterAdmin::bool($data['permissions']['p_utilisateur']  ?? false);
+    $p_grade        = FilterAdmin::bool($data['permissions']['p_grade']        ?? false);
+    $p_role         = FilterAdmin::bool($data['permissions']['p_role']         ?? false);
+    $p_actualite    = FilterAdmin::bool($data['permissions']['p_actualite']    ?? false);
+    $p_evenement    = FilterAdmin::bool($data['permissions']['p_evenement']    ?? false);
+    $p_comptabilite = FilterAdmin::bool($data['permissions']['p_comptabilite'] ?? false);
+    $p_achat        = FilterAdmin::bool($data['permissions']['p_achat']        ?? false);
+    $p_moderation   = FilterAdmin::bool($data['permissions']['p_moderation']   ?? false);
 
     $role = Role::getInstance($id);
 
@@ -104,15 +134,29 @@ function update_role() : void
         return;
     }
 
-    $role->update($name, $p_log, $p_boutique, $p_reunion, $p_utilisateur, $p_grade, $p_role, $p_actualite, $p_evenement, $p_comptabilite, $p_achat, $p_moderation);
+    $role->update(
+        $name,
+        $p_log,
+        $p_boutique,
+        $p_reunion,
+        $p_utilisateur,
+        $p_grade,
+        $p_role,
+        $p_actualite,
+        $p_evenement,
+        $p_comptabilite,
+        $p_achat,
+        $p_moderation
+    );
 
     http_response_code(200);
     echo json_encode($role);
-
-
 }
 
-function delete_role() : void
+/**
+ * DELETE /api/role.php?id=1
+ */
+function delete_role(): void
 {
     if (!isset($_GET['id'])) {
         http_response_code(400);
@@ -120,7 +164,7 @@ function delete_role() : void
         return;
     }
 
-    $id = filter::int($_GET['id']);
+    $id = FilterAdmin::int($_GET['id']);
 
     $role = Role::getInstance($id);
 
@@ -135,4 +179,3 @@ function delete_role() : void
     http_response_code(200);
     echo json_encode(['message' => 'Role deleted']);
 }
-

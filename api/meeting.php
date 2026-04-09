@@ -1,25 +1,21 @@
 <?php
 session_start();
-use model\File;
-use model\Meeting;
-use model\Member;
 
-require_once 'filter.php';
-require_once 'models/File.php';
-require_once 'models/Meeting.php';
-require_once 'models/Member.php';
-require_once 'DB.php';
-require_once 'tools.php';
+require_once __DIR__ . '/../utils.php';
+require_once __DIR__ . '/filter.php';
+require_once __DIR__ . '/../model/File.php';
+require_once __DIR__ . '/../model/Meeting.php';
+require_once __DIR__ . '/../model/Member.php';
+require_once __DIR__ . '/../model/database.php';
 
 // TODO: Remove this line in production
 ini_set('display_errors', 1);
 
 header('Content-Type: application/json');
 
-tools::checkPermission('p_reunion');
+Tools::checkPermission('p_reunion');
 
 $methode = $_SERVER['REQUEST_METHOD'];
-
 switch ($methode) {
     case 'GET':                      # READ
         get_meetings();

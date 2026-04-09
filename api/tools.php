@@ -1,6 +1,6 @@
 <?php
 
-require_once 'DB.php';
+require_once __DIR__ . '/../model/database.php';
 
 class tools
 {

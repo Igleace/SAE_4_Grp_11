@@ -2,7 +2,7 @@
 
 // Le filter permets de vérifier que les types récupérés sont corrects
 // On va aussi les nettoyer pour éviter les injections XSS. Les injections SQL sont gérées par la classe DB
-class Filter
+class FilterAdmin
 {
 
     private static function deny(mixed $value, string $attribute) {

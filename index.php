@@ -1,161 +1,221 @@
-<!DOCTYPE html>
-<html lang="fr">
+<?php
+session_start();
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+require_once 'utils.php';
 
-    <title>Accueil</title>
+$page = $_GET['page'] ?? 'home';
 
-    <link rel="stylesheet" href="/styles/index_style.css">
-    <link rel="stylesheet" href="/styles/general_style.css">
-    <link rel="stylesheet" href="/styles/header_style.css">
-    <link rel="stylesheet" href="/styles/footer_style.css">
-    <link rel="stylesheet" href="/styles/bubble.css">
+switch ($page) {
+    case 'about':
+        require 'controllers/AboutController.php';
+        $controller = new AboutController();
+        $data = $controller->index();
+        $title = 'À propos';
+        $styles = ['about_style.css'];
+        $scripts = [];
+        $view = 'views/about/index.php';
+        include 'views/layouts/base.php';
+        break;
 
-</head>
+    case 'account':
+        require 'controllers/AccountController.php';
+        $controller = new AccountController();
+        $data = $controller->index();
+        $title = 'Mon compte';
+        $styles = ['account_style.css'];
+        $scripts = [];
+        $view = 'views/account/index.php';
+        include 'views/layouts/base.php';
+        break;
 
-<body id="index" class="body_margin">
+    case 'cart':
+        require 'controllers/CartController.php';
+        $controller = new CartController();
+        $data = $controller->index();
+        $title = 'Panier';
+        $styles = ['cart_style.css'];
+        $scripts = [];
+        $view = 'views/cart/index.php';
+        include 'views/layouts/base.php';
+        break;
 
-    <?php
-     require_once 'header.php';
-     require_once 'database.php';
-     $db = new DB();
-     $isLoggedIn = isset($_SESSION["userid"]);
-    ?>
-    <div id="page-container">
-        <!--H1 A METTRE -->
-        <section>
-            <h2 class="titre_vertical"> ADIIL</h2>
-            <div id="index_carrousel">
-                <img src="/assets/photo_accueil_BDE.png" alt="Carrousel ADIIL">
-            </div>
-        </section>
+    case 'order':
+        require 'controllers/OrderController.php';
+        $controller = new OrderController();
 
-        <section>
-            <div class="paragraphes">
-                <p>
-                    <b class="underline">L'ADIIL</b>, ou l'<b>Association</b> du <b>Département</b> <b>Informatique</b>
-                    de l'<b>IUT</b> de <b>Laval</b>,
-                    est une organisation étudiante dédiée à créer un environnement propice à l'épanouissement dans le
-                    campus.
-                    Participer a des évèvements, et plus globalement a la vie du département.
-                </p>
-                <p>
-                    L'ADIIL, véritable moteur de la vie étudiante à l'IUT de Laval,
-                    offre un cadre propice à l'épanouissement académique et social des étudiants en informatique.
-                    En participant à ses événements variés, les étudiants enrichissent leur expérience universitaire,
-                    tout en renforçant les liens au sein de la communauté.
-                </p>
-            </div>
-            <h2 class="titre_vertical">L'ASSO</h2>
-        </section>
+        if (($_GET['action'] ?? '') === 'submit') {
+            $controller->submit();
+            // pas de vue, la méthode redirige
+        } else {
+            $data = $controller->index();
+            $title = 'Commande';
+            $styles = ['order_style.css'];
+            $scripts = ['payment_toggle.js'];
+            $view = 'views/shop/order.php';
+            include 'views/layouts/base.php';
+        }
+        break;
 
-        <section>
-            <h2 class="titre_vertical">SCORES</h2>
+    case 'events':
+        require 'controllers/EventsController.php';
+        $controller = new EventsController();
+        $data = $controller->index();
+        $title = 'Événements';
+        $styles = ['events_style.css'];
+        $scripts = ['event_details_redirect.js', 'scroll_to_closest_event.js'];
+        $view = 'views/events/index.php';
+        include 'views/layouts/base.php';
+        break;
 
-            <div id="podium">
-                <?php
-                $podium = $db->select(
-                    "SELECT prenom_membre, xp_membre, pp_membre FROM MEMBRE ORDER BY xp_membre DESC LIMIT 3;"
-                );
+    case 'event_details':
+        require 'controllers/EventsController.php';
+        $controller = new EventsController();
+        $data = $controller->details();
+        $title = 'Détail événement';
+        $styles = ['event_details_style.css'];
+        $scripts = ['open_media.js', 'add_media.js', 'open_gallery.js'];
+        $view = 'views/events/details.php';
+        include 'views/layouts/base.php';
+        break;
 
-               foreach ([2,1,3] as $member_number):
-                $pod = $podium[$member_number-1];
+    case 'event_subscription':
+        require 'controllers/EventsController.php';
+        $controller = new EventsController();
+        $data = $controller->subscribe();
 
-            ?>
-                <div class="podium_unit">
-                    <h3>#0<?php echo $member_number?></h3>
-                    <h4><?php echo $pod['prenom_membre'];?></h4>
-                    <div>
-                        <?php if($pod['pp_membre'] == null):?>
-                            <img src="/admin/ressources/default_images/user.jpg" alt="Profile Picture"
-                            class="profile_picture">
-                        <?php else:?>
-                            <img src="/api/files/<?php echo $pod['pp_membre'];?>" alt="Profile Picture"
-                                class="profile_picture">
-                        <?php endif?>
-                        <?php echo $pod['xp_membre'];?> xp
-                    </div>
-                </div>
-                <?php endforeach; ?>
-            </div>
-        </section>
+        if (is_array($data)) {
+            $title = 'Inscription événement';
+            $styles = ['event_subscription_style.css'];
+            $view = 'views/events/subscribe.php';
+            include 'views/layouts/base.php';
+        }
+        break;
 
-        <section>
-            <div class="events-display">
-                <?php
-                    $date = getdate();
-                    $sql_date = $date["year"]."-".$date["mon"]."-".$date["mday"];
-                    $events_to_display = $db->select(
-                        "SELECT id_evenement, nom_evenement, lieu_evenement, date_evenement FROM EVENEMENT WHERE date_evenement >= ? ORDER BY date_evenement ASC LIMIT 2;",
-                        "s",
-                        [$sql_date]
-                    );
+    case 'my_gallery':
+        require 'controllers/EventsController.php';
+        $controller = new EventsController();
+        $data = $controller->myGallery();
+        $title = 'Ma galerie';
+        $styles = ['my_gallery_style.css'];
+        $scripts = ['open_media.js', 'add_media.js', 'delete_media.js'];
+        $view = 'views/events/my_gallery.php';
+        include 'views/layouts/base.php';
+        break;
 
-                foreach ($events_to_display as $event):
-                    $eventid = $event["id_evenement"];?>
+    case 'add_media':
+        require 'controllers/EventsController.php';
+        $controller = new EventsController();
+        $controller->addMedia();
+        break;
 
-                <div class="event" event-id="<?php echo $eventid;?>">
-                    <div>
-                        <h2><?php echo $event['nom_evenement'];?></h2>
-                        <?php
-                                $moisFr = [1 => 'Janvier', 2 => 'Février', 3 => 'Mars', 4 => 'Avril', 5 => 'Mai', 6 => 'Juin', 7 => 'Juillet', 8 => 'Août', 9 => 'Septembre', 10 => 'Octobre', 11 => 'Novembre', 12 => 'Décembre'];
+    case 'delete_media':
+        require 'controllers/EventsController.php';
+        $controller = new EventsController();
+        $controller->deleteMedia();
+        break;
 
-                                $event_date = substr($event['date_evenement'], 0, 10);
-                                $event_date_info = getdate(strtotime($event_date));
-                                echo ucwords($event_date_info["mday"]." ".$moisFr[$event_date_info['mon']].", ".$event["lieu_evenement"]);
-                            ?>
-                    </div>
+    case 'shop':
+        require 'controllers/ShopController.php';
+        $controller = new ShopController();
+        $data = $controller->index();
+        $title = 'Boutique';
+        $styles = ['shop_style.css'];
+        $scripts = [];
+        $view = 'views/shop/index.php';
+        include 'views/layouts/base.php';
+        break;
 
-                    <h4 <?php
-                            $isPlaceDisponible = $db->select(
-                                "SELECT (EVENEMENT.places_evenement - (SELECT COUNT(*) FROM INSCRIPTION WHERE INSCRIPTION.id_evenement = EVENEMENT.id_evenement)) > 0 AS isPlaceDisponible FROM EVENEMENT WHERE EVENEMENT.id_evenement = ? ;",
-                                "i",
-                                [$eventid])[0]['isPlaceDisponible'];
-                            
-                            if($isPlaceDisponible){
-                                //editable
-                                $event_subscription_color_class = "event-not-subscribed hover_effect";
-                                $event_subscription_label = "S'inscrire";
-                            }else{
-                                //editable
-                                $event_subscription_color_class = "event-full";
-                                $event_subscription_label = "Complet";
-                            }
+    case 'cart_add':
+        require 'controllers/CartController.php';
+        $controller = new CartController();
+        $controller->add();
+        break;
 
-                            if($isLoggedIn){
-                                $isSubscribed = !empty($db->select(
-                                "SELECT MEMBRE.id_membre FROM MEMBRE JOIN INSCRIPTION on MEMBRE.id_membre = INSCRIPTION.id_membre WHERE MEMBRE.id_membre = ? AND INSCRIPTION.id_evenement = ? ;",
-                                "ii",
-                                [$_SESSION['userid'], $event["id_evenement"]]
-                                ));
-                                
-                                if($isSubscribed){
-                                    //editable
-                                    $event_subscription_color_class = "event-subscribed";
-                                    $event_subscription_label = "Inscrit";
-                                }
-                            }
+    case 'news':
+        require 'controllers/NewsController.php';
+        $controller = new NewsController();
+        $data = $controller->index();
+        $title = 'Actualités';
+        $styles = ['news_style.css'];
+        $scripts = ['news_details_redirect.js', 'scroll_to_closest_event.js'];
+        $view = 'views/news/index.php';
+        include 'views/layouts/base.php';
+        break;
 
-                            echo "class=\"$event_subscription_color_class\"";
-                            ?>>
-                        <?php echo $event_subscription_label;?>
+    case 'news_details':
+        require 'controllers/NewsController.php';
+        $controller = new NewsController();
+        $data = $controller->details();
+        $title = $data['news']['titre_actualite'];
+        $styles = ['event_details_style.css'];
+        $view = 'views/news/details.php';
+        include 'views/layouts/base.php';
+        break;
 
-                    </h4>
-                </div>
-                <?php endforeach; ?>
-                <h3><a href="/events.php">Voir tous les événements</a></h3>
-            </div>
-            <h2 class="titre_vertical">EVENT</h2>
+    case 'grade':
+        require 'controllers/GradeController.php';
+        $controller = new GradeController();
+        $data = $controller->index();
+        $title = 'Grades';
+        $styles = ['grade_style.css'];
+        $scripts = [];
+        $view = 'views/grade/index.php';
+        include 'views/layouts/base.php';
+        break;
 
-        </section>
-    </div>
-    <?php require_once 'footer.php';?>
-    <script src="/scripts/event_details_redirect.js"></script>
-    <script src="/scripts/bubble.js"></script>
-</body>
+    case 'grade_subscribe':
+        require 'controllers/GradeController.php';
+        $controller = new GradeController();
+        $data = $controller->subscribe();
+        $title = 'Mon adhésion';
+        $styles = ['grade_subscription_style.css', 'grade_style.css'];
+        $scripts = ['payment_toggle.js'];
+        $view = 'views/grade/subscribe.php';
+        include 'views/layouts/base.php';
+        break;
 
-</html>
+    case 'agenda':
+        require 'controllers/AgendaController.php';
+        $controller = new AgendaController();
+        $data = $controller->index();
+        $title = 'Agenda';
+        $styles = ['planner_style.css'];
+        $scripts = [];
+        $view = 'views/agenda/index.php';
+        include 'views/layouts/base.php';
+        break;
+
+    case 'login':
+        require 'controllers/AuthController.php';
+        $controller = new AuthController();
+        $data = $controller->login();
+        $title = 'Connexion';
+        $styles = ['login_style.css'];
+        $scripts = [];
+        $view = 'views/auth/login.php';
+        include 'views/layouts/base.php';
+        break;
+
+    case 'signin':
+        require 'controllers/AuthController.php';
+        $controller = new AuthController();
+        $data = $controller->signin();
+        $title = 'Inscription';
+        $styles = ['login_style.css'];
+        $scripts = [];
+        $view = 'views/auth/signin.php';
+        include 'views/layouts/base.php';
+        break;
+
+    case 'home':
+    default:
+        require 'controllers/HomeController.php';
+        $controller = new HomeController();
+        $data = $controller->index();
+        $title = 'Accueil';
+        $styles = ['index_style.css'];
+        $scripts = ['event_details_redirect.js', 'bubble.js'];
+        $view = 'views/home/index.php';
+        include 'views/layouts/base.php';
+        break;
+}

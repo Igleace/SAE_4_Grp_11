@@ -1,71 +1,70 @@
 <?php
 session_start();
-use model\File;
-use model\Member;
 
-require_once 'models/Member.php';
-require_once 'models/File.php';
-require_once 'filter.php';
-
-require_once 'DB.php';
-require_once 'tools.php';
+require_once __DIR__ . '/../utils.php';
+require_once __DIR__ . '/filter.php';
+require_once __DIR__ . '/../model/Member.php';
+require_once __DIR__ . '/../model/File.php';
+require_once __DIR__ . '/../model/database.php';
 
 // TODO: Remove this line in production
 ini_set('display_errors', 1);
 
 header('Content-Type: application/json');
 
-
-tools::checkPermission('p_utilisateur');
-
+Tools::checkPermission('p_utilisateur');
 
 $methode = $_SERVER['REQUEST_METHOD'];
 
-
-# On accepte le format multipart/form-data UNIQUEMENT sur les requetes POST et PATCH
-# Sinon, il faudrait coder un parser de multipart/form-data
 switch ($methode) {
-    case 'GET':                      # READ
+    case 'GET':      // READ
         get_users();
         break;
-    case 'POST':                     # CREATE
+
+    case 'POST':     // CREATE
         create_user();
         break;
-    case 'PUT':                      # UPDATE (données seulement)
-        if (tools::methodAccepted('application/json')) {
+
+    case 'PUT':      // UPDATE (données seulement)
+        if (Tools::methodAccepted('application/json')) {
             update_user();
         }
         break;
-    case 'PATCH':                    # UPDATE (image seulement)
+
+    case 'PATCH':    // UPDATE (image seulement)
         update_image();
         break;
-    case 'DELETE':                   # DELETE
+
+    case 'DELETE':   // DELETE
         delete_user();
         break;
+
     default:
-        # 405 Method Not Allowed
         http_response_code(405);
+        echo json_encode(['error' => 'Method Not Allowed']);
         break;
 }
 
-function get_users() : void {
+/**
+ * GET /api/users.php
+ * GET /api/users.php?id=1
+ */
+function get_users(): void
+{
     if (isset($_GET['id'])) {
-        // Si un ID est précisé, on renvoie les infos de l'utilisateur correspondant avec ses rôles
-        $id = filter::int($_GET['id']);
+        // Un utilisateur précis
+        $id = FilterAdmin::int($_GET['id']);
+        $user = Member::getInstance($id);
 
-        $data = Member::getInstance($id);
-
-        if ($data) {
-            $data = $data->toJsonWithRoles();
-
+        if ($user) {
+            $data = $user->toJsonWithRoles();
         } else {
             http_response_code(404);
             echo json_encode(["message" => "User not found"]);
             return;
         }
-
     } else {
-        // Sinon, on renvoie la liste de tous les utilisateurs. On va juste préciser si ils ont des rôles ou non
+        // Tous les utilisateurs (sans détails de rôles)
         $data = Member::bulkFetch();
     }
 
@@ -73,7 +72,11 @@ function get_users() : void {
     echo json_encode($data);
 }
 
-function create_user() : void
+/**
+ * POST /api/users.php
+ * (endpoint de test : crée un user bidon)
+ */
+function create_user(): void
 {
     $user = Member::create(
         "Nom",
@@ -87,23 +90,35 @@ function create_user() : void
     echo json_encode($user->toJsonWithRoles());
 }
 
-function update_user() : void
+/**
+ * PUT /api/users.php?id=1
+ * Body JSON : { "name": "...", "firstname": "...", "email": "...", "tp": "...", "xp": 42 }
+ */
+function update_user(): void
 {
-
     $data = json_decode(file_get_contents('php://input'), true);
 
-    if (!isset($data['name'], $data['firstname'], $data['email'], $data['tp'], $data['xp'], $_GET['id'])) {
+    if (
+        !isset(
+            $data['name'],
+            $data['firstname'],
+            $data['email'],
+            $data['tp'],
+            $data['xp'],
+            $_GET['id']
+        )
+    ) {
         http_response_code(400);
         echo json_encode(["message" => "Missing parameters"]);
         return;
     }
 
-    $id = filter::int($_GET['id']);
-    $name = filter::string($data['name'],maxLenght: 100);
-    $surname =  filter::string($data['firstname'], maxLenght: 100);
-    $email = filter::email($data['email'], maxLenght: 100);
-    $tp = filter::string($data['tp'], maxLenght: 3);
-    $xp = filter::int($data['xp']);
+    $id      = FilterAdmin::int($_GET['id']);
+    $name    = FilterAdmin::string($data['name'], maxLenght: 100);
+    $surname = FilterAdmin::string($data['firstname'], maxLenght: 100);
+    $email   = FilterAdmin::email($data['email'], maxLenght: 100);
+    $tp      = FilterAdmin::string($data['tp'], maxLenght: 3);
+    $xp      = FilterAdmin::int($data['xp']);
 
     $user = Member::getInstance($id);
 
@@ -112,15 +127,16 @@ function update_user() : void
 
         http_response_code(200);
         echo json_encode($user->toJsonWithRoles());
-
-
     } else {
         http_response_code(404);
         echo json_encode(["message" => "User not found"]);
     }
 }
 
-
+/**
+ * PATCH /api/users.php?id=1
+ * Body : multipart/form-data avec le fichier image
+ */
 function update_image(): void
 {
     if (!isset($_GET['id'])) {
@@ -129,7 +145,7 @@ function update_image(): void
         return;
     }
 
-    $id = filter::int($_GET['id']);
+    $id = FilterAdmin::int($_GET['id']);
 
     $user = Member::getInstance($id);
 
@@ -147,17 +163,24 @@ function update_image(): void
         return;
     }
 
-    $deleteFile = File::getFile($user->toJson()['pp_membre']);
-    $deleteFile?->deleteFile();
+    // Suppression éventuelle de l'ancienne image
+    $current = $user->toJson();
+    if (!empty($current['pp_membre'])) {
+        $deleteFile = File::getFile($current['pp_membre']);
+        $deleteFile?->deleteFile();
+    }
 
+    // Mise à jour en base
     $user->updateProfilePic($newImage);
 
     http_response_code(200);
     echo json_encode($user->toJsonWithRoles());
 }
 
-
-function delete_user() :void
+/**
+ * DELETE /api/users.php?id=1
+ */
+function delete_user(): void
 {
     if (!isset($_GET['id'])) {
         http_response_code(400);
@@ -165,7 +188,7 @@ function delete_user() :void
         return;
     }
 
-    $id = filter::int($_GET['id']);
+    $id = FilterAdmin::int($_GET['id']);
 
     $user = Member::getInstance($id);
 
@@ -180,5 +203,3 @@ function delete_user() :void
     http_response_code(200);
     echo json_encode(["message" => "User deleted"]);
 }
-
-

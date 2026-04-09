@@ -114,7 +114,9 @@ async function selectUser(id_member, li){
     const user = await requestGET(`/users.php?id=${id_member}`);
 
     // Update displayed information
-    prop_img.src = await getFullFilepath(user.pp_membre, '../ressources/default_images/user.jpg');
+    prop_img.src = user.pp_membre
+        ? `/api/files/${encodeURIComponent(user.pp_membre)}`
+        : '../ressources/default_images/user.jpg';
     prop_nom.value = user.nom_membre;
     prop_prenom.value = user.prenom_membre;
     prop_email.value = user.email_membre;
